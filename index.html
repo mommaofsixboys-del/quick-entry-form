@@ -3,24 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <title>Quick Entry Form</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     body { font-family: sans-serif; line-height: 1.4; margin: 20px; }
     label { display: block; margin: 10px 0 5px; }
-    input, select, textarea, button {
-      width: 100%;
-      padding: 8px;
-      box-sizing: border-box;
-      font-size: 16px;
-    }
+    input, select, textarea { width: 100%; padding: 8px; box-sizing: border-box; }
     .section { display: none; margin-top: 10px; padding: 10px; border: 1px solid #ddd; }
-    button { background: #4CAF50; color: white; border: none; cursor: pointer; }
-    button:hover { background: #45a049; }
   </style>
 </head>
 <body>
   <h2>Quick Record Entry</h2>
-  <form id="entryForm">
+  <form id="entryForm" method="POST" target="hidden_iframe" action="https://docs.google.com/forms/d/e/1FAIpQLSfq5k4yrVHmA9jtyUUMcoSUDcjaktRb_D73_JMLFejWKHJ0jQ/formResponse">
     <!-- Record Type -->
     <label for="rType">Record Type</label>
     <select name="entry.1713856544" id="rType" required>
@@ -33,11 +26,11 @@
     <!-- Expenses Section -->
     <div class="section" id="sec-expense">
       <label>Date</label>
-      <input type="date" name="entry.1045158713" id="expenseDate" required>
+      <input type="date" name="entry.1045158713" id="exp-date" required>
       <label>Amount</label>
       <input type="number" step="0.01" name="entry.1854250654">
       <label>Category</label>
-      <select name="entry.754345117" id="categoryDropdown"></select>
+      <select name="entry.754345117" id="category"></select>
       <label>Description</label>
       <textarea name="entry.121839773"></textarea>
     </div>
@@ -45,9 +38,9 @@
     <!-- Mileage Section -->
     <div class="section" id="sec-mileage">
       <label>Date</label>
-      <input type="date" name="entry.114922785" id="mileageDate">
+      <input type="date" name="entry.114922785" id="mil-date">
       <label>Vehicle</label>
-      <select name="entry.381239062" id="vehicleDropdown"></select>
+      <select name="entry.381239062" id="vehicle"></select>
       <label>Description</label>
       <textarea name="entry.470293168"></textarea>
       <label>Miles</label>
@@ -57,20 +50,20 @@
     <!-- Income Section -->
     <div class="section" id="sec-income">
       <label>Date</label>
-      <input type="date" name="entry.1243144726" id="incomeDate">
+      <input type="date" name="entry.1243144726" id="inc-date">
       <label>Amount</label>
       <input type="number" step="0.01" name="entry.1110252672">
       <label>Description</label>
       <textarea name="entry.585862880"></textarea>
     </div>
 
-    <button type="submit" style="margin-top: 20px; padding: 10px 20px;">Submit</button>
+    <button style="margin-top: 20px; padding: 10px 20px;">Submit</button>
   </form>
 
-  <script>
-    const categoryURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTfwdhWSLJu66lkuSd_jA6plZTjbDIre7tQ4OErOtBWlYAZhhafk2A_UK-b2SY2OKgANGVOFk37QKx6/pub?gid=1787059439&single=true&output=csv";
+  <iframe name="hidden_iframe" style="display:none;"></iframe>
 
-    // Show section on record type change
+  <script>
+    // Toggle sections
     document.getElementById('rType').addEventListener('change', function() {
       document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
       const sel = this.value;
@@ -80,45 +73,38 @@
     });
 
     // Auto-fill today's date
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('expenseDate').value = today;
-    document.getElementById('mileageDate').value = today;
-    document.getElementById('incomeDate').value = today;
+    function setToday(id) {
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById(id).value = today;
+    }
+    ['exp-date', 'mil-date', 'inc-date'].forEach(setToday);
 
-    // Populate dropdowns from LIST tab
-    fetch(categoryURL)
-      .then(response => response.text())
-      .then(data => {
-        const rows = data.split("\n").map(r => r.split(","));
-        const categories = rows.map(r => r[0]).filter(v => v && v !== "Category");
-        const vehicles = rows.map(r => r[1]).filter(v => v && v !== "Vehicle");
+    // Fetch categories & vehicles from LIST tab
+    fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vTfwdhWSLJu66lkuSd_jA6plZTjbDIre7tQ4OErOtBWlYAZhhafk2A_UK-b2SY2OKgANGVOFk37QKx6/pub?gid=1787059439&single=true&output=csv')
+      .then(res => res.text())
+      .then(csv => {
+        const rows = csv.split('\n').map(r => r.split(','));
+        const categories = [];
+        const vehicles = [];
+        rows.forEach(r => {
+          if (r[0]) categories.push(r[0].trim());
+          if (r[1]) vehicles.push(r[1].trim());
+        });
 
-        const categorySelect = document.getElementById('categoryDropdown');
-        const vehicleSelect = document.getElementById('vehicleDropdown');
+        const catSel = document.getElementById('category');
+        categories.forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c; opt.textContent = c;
+          catSel.appendChild(opt);
+        });
 
-        categorySelect.innerHTML = "<option value=''>Select...</option>";
-        vehicleSelect.innerHTML = "<option value=''>Select...</option>";
-
-        categories.forEach(c => categorySelect.innerHTML += `<option value="${c}">${c}</option>`);
-        vehicles.forEach(v => vehicleSelect.innerHTML += `<option value="${v}">${v}</option>`);
+        const vehSel = document.getElementById('vehicle');
+        vehicles.forEach(v => {
+          const opt = document.createElement('option');
+          opt.value = v; opt.textContent = v;
+          vehSel.appendChild(opt);
+        });
       });
-
-    // Handle form submit without leaving page
-    document.getElementById('entryForm').addEventListener('submit', function(e) {
-      e.preventDefault();
-      const formData = new FormData(this);
-      fetch("https://docs.google.com/forms/d/e/1FAIpQLSfq5k4yrVHmA9jtyUUMcoSUDcjaktRb_D73_JMLFejWKHJ0jQ/formResponse", {
-        method: "POST",
-        body: formData,
-        mode: "no-cors"
-      }).then(() => {
-        alert("Entry submitted!");
-        this.reset();
-        document.getElementById('expenseDate').value = today;
-        document.getElementById('mileageDate').value = today;
-        document.getElementById('incomeDate').value = today;
-      });
-    });
   </script>
 </body>
 </html>
