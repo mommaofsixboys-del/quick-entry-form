@@ -2,63 +2,19 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Quick Entry Form</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    body {
-      font-family: sans-serif;
-      line-height: 1.5;
-      margin: 15px;
-      background: #f9f9f9;
-    }
-    h2 {
-      text-align: center;
-      margin-bottom: 20px;
-    }
-    label {
-      display: block;
-      margin: 12px 0 6px;
-      font-weight: bold;
-    }
-    input, select, textarea, button {
-      width: 100%;
-      padding: 12px;
-      font-size: 16px;
-      box-sizing: border-box;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-    }
-    textarea {
-      min-height: 60px;
-    }
-    .section {
-      display: none;
-      margin-top: 10px;
-      padding: 12px;
-      background: white;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-      transition: all 0.3s ease;
-    }
-    button {
-      margin-top: 20px;
-      background: #4CAF50;
-      color: white;
-      border: none;
-      font-weight: bold;
-      cursor: pointer;
-      transition: background 0.3s ease;
-    }
-    button:hover {
-      background: #45a049;
-    }
+    body { font-family: sans-serif; line-height: 1.4; margin: 20px; font-size: 18px; }
+    label { display: block; margin: 10px 0 5px; }
+    input, select, textarea { width: 100%; padding: 8px; box-sizing: border-box; font-size: 16px; }
+    .section { display: none; margin-top: 10px; padding: 10px; border: 1px solid #ddd; }
+    button { font-size: 18px; padding: 10px; }
   </style>
 </head>
 <body>
   <h2>Quick Record Entry</h2>
   <form id="entryForm" method="POST" action="https://docs.google.com/forms/d/e/1FAIpQLSfq5k4yrVHmA9jtyUUMcoSUDcjaktRb_D73_JMLFejWKHJ0jQ/formResponse">
-    
     <!-- Record Type -->
     <label for="rType">Record Type</label>
     <select name="entry.1713856544" id="rType" required>
@@ -75,7 +31,9 @@
       <label>Amount</label>
       <input type="number" step="0.01" name="entry.1854250654">
       <label>Category</label>
-      <select name="entry.754345117" id="category"></select>
+      <select id="categoryDropdown" name="entry.754345117">
+        <option value="">Select...</option>
+      </select>
       <label>Description</label>
       <textarea name="entry.121839773"></textarea>
     </div>
@@ -85,7 +43,9 @@
       <label>Date</label>
       <input type="date" name="entry.114922785">
       <label>Vehicle</label>
-      <select name="entry.381239062" id="vehicle"></select>
+      <select id="vehicleDropdown" name="entry.381239062">
+        <option value="">Select...</option>
+      </select>
       <label>Description</label>
       <textarea name="entry.470293168"></textarea>
       <label>Miles</label>
@@ -102,11 +62,10 @@
       <textarea name="entry.585862880"></textarea>
     </div>
 
-    <button type="submit">Submit</button>
+    <button style="margin-top: 20px;">Submit</button>
   </form>
 
   <script>
-    // Show/hide sections
     document.getElementById('rType').addEventListener('change', function() {
       document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
       const sel = this.value;
@@ -115,27 +74,38 @@
       else if (sel === 'Income') document.getElementById('sec-income').style.display = 'block';
     });
 
-    // Load Category & Vehicle from Google Sheets
-    async function loadDropdowns() {
-      const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTfwdhWSLJu66lkuSd_jA6plZTjbDIre7tQ4OErOtBWlYAZhhafk2A_UK-b2SY2OKgANGVOFk37QKx6/pub?output=csv';
-      const res = await fetch(sheetUrl);
-      const text = await res.text();
-      const rows = text.split('\n').map(r => r.split(','));
-      
-      const categorySelect = document.getElementById('category');
-      const vehicleSelect = document.getElementById('vehicle');
+    // Fetch Categories & Vehicles from LIST tab (gid=1787059439)
+    const sheetURL = "https://docs.google.com/spreadsheets/d/1AvH7fc8xNf1OSyBTyTbskcyPCfkE1UkZmghQYnre_b4/gviz/tq?tqx=out:csv&gid=1787059439";
 
-      // Clear existing
-      categorySelect.innerHTML = '<option value="">Select...</option>';
-      vehicleSelect.innerHTML = '<option value="">Select...</option>';
+    fetch(sheetURL)
+      .then(res => res.text())
+      .then(csv => {
+        const rows = csv.trim().split("\n").map(r => r.split(","));
+        const categories = [];
+        const vehicles = [];
 
-      rows.forEach(row => {
-        if (row[0]) categorySelect.innerHTML += `<option value="${row[0]}">${row[0]}</option>`;
-        if (row[1]) vehicleSelect.innerHTML += `<option value="${row[1]}">${row[1]}</option>`;
-      });
-    }
+        for (let i = 1; i < rows.length; i++) { // skip header
+          if (rows[i][0]) categories.push(rows[i][0].trim());
+          if (rows[i][1]) vehicles.push(rows[i][1].trim());
+        }
 
-    loadDropdowns();
+        const catDropdown = document.getElementById("categoryDropdown");
+        categories.forEach(cat => {
+          const opt = document.createElement("option");
+          opt.value = cat;
+          opt.textContent = cat;
+          catDropdown.appendChild(opt);
+        });
+
+        const vehDropdown = document.getElementById("vehicleDropdown");
+        vehicles.forEach(veh => {
+          const opt = document.createElement("option");
+          opt.value = veh;
+          opt.textContent = veh;
+          vehDropdown.appendChild(opt);
+        });
+      })
+      .catch(err => console.error("Error loading dropdowns:", err));
   </script>
 </body>
 </html>
