@@ -5,15 +5,60 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Quick Entry Form</title>
   <style>
-    body { font-family: sans-serif; line-height: 1.4; margin: 20px; }
-    label { display: block; margin: 10px 0 5px; }
-    input, select, textarea { width: 100%; padding: 8px; box-sizing: border-box; }
-    .section { display: none; margin-top: 10px; padding: 10px; border: 1px solid #ddd; }
+    body {
+      font-family: sans-serif;
+      line-height: 1.5;
+      margin: 15px;
+      background: #f9f9f9;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin: 12px 0 6px;
+      font-weight: bold;
+    }
+    input, select, textarea, button {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      box-sizing: border-box;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    textarea {
+      min-height: 60px;
+    }
+    .section {
+      display: none;
+      margin-top: 10px;
+      padding: 12px;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      transition: all 0.3s ease;
+    }
+    button {
+      margin-top: 20px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    button:hover {
+      background: #45a049;
+    }
   </style>
 </head>
 <body>
   <h2>Quick Record Entry</h2>
   <form id="entryForm" method="POST" action="https://docs.google.com/forms/d/e/1FAIpQLSfq5k4yrVHmA9jtyUUMcoSUDcjaktRb_D73_JMLFejWKHJ0jQ/formResponse">
+    
     <!-- Record Type -->
     <label for="rType">Record Type</label>
     <select name="entry.1713856544" id="rType" required>
@@ -25,75 +70,43 @@
 
     <!-- Expenses Section -->
     <div class="section" id="sec-expense">
-      <label> Date</label>
+      <label>Date</label>
       <input type="date" name="entry.1045158713" required>
-      <label> Amount</label>
+      <label>Amount</label>
       <input type="number" step="0.01" name="entry.1854250654">
-      <label> Category</label>
-      <select name="entry.754345117" id="categorySelect"></select>
-      <label> Description</label>
+      <label>Category</label>
+      <select name="entry.754345117" id="category"></select>
+      <label>Description</label>
       <textarea name="entry.121839773"></textarea>
     </div>
 
     <!-- Mileage Section -->
     <div class="section" id="sec-mileage">
-      <label> Date</label>
+      <label>Date</label>
       <input type="date" name="entry.114922785">
-      <label> Vehicle</label>
-      <select name="entry.381239062" id="vehicleSelect"></select>
-      <label> Description</label>
+      <label>Vehicle</label>
+      <select name="entry.381239062" id="vehicle"></select>
+      <label>Description</label>
       <textarea name="entry.470293168"></textarea>
-      <label> Miles</label>
+      <label>Miles</label>
       <input type="number" step="0.1" name="entry.372962443">
     </div>
 
     <!-- Income Section -->
     <div class="section" id="sec-income">
-      <label> Date</label>
+      <label>Date</label>
       <input type="date" name="entry.1243144726">
-      <label> Amount</label>
+      <label>Amount</label>
       <input type="number" step="0.01" name="entry.1110252672">
-      <label> Description</label>
+      <label>Description</label>
       <textarea name="entry.585862880"></textarea>
     </div>
 
-    <button style="margin-top: 20px; padding: 10px 20px;">Submit</button>
+    <button type="submit">Submit</button>
   </form>
 
   <script>
-    async function populateDropdowns() {
-      const url = "https://opensheet.elk.sh/1AvH7fc8xNf1OSyBTyTbskcyPCfkE1UkZmghQYnre_b4/List";
-      const data = await fetch(url).then(r => r.json());
-
-      const categories = [...new Set(data.map(row => row.Category).filter(Boolean))];
-      const vehicles = [...new Set(data.map(row => row.Vehicle).filter(Boolean))];
-
-      const catSelect = document.getElementById("categorySelect");
-      const vehSelect = document.getElementById("vehicleSelect");
-
-      // Add placeholder
-      catSelect.innerHTML = '<option value="">Select...</option>';
-      vehSelect.innerHTML = '<option value="">Select...</option>';
-
-      // Populate Categories
-      categories.forEach(cat => {
-        const opt = document.createElement("option");
-        opt.value = cat;
-        opt.textContent = cat;
-        catSelect.appendChild(opt);
-      });
-
-      // Populate Vehicles
-      vehicles.forEach(veh => {
-        const opt = document.createElement("option");
-        opt.value = veh;
-        opt.textContent = veh;
-        vehSelect.appendChild(opt);
-      });
-    }
-
-    populateDropdowns();
-
+    // Show/hide sections
     document.getElementById('rType').addEventListener('change', function() {
       document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
       const sel = this.value;
@@ -101,6 +114,28 @@
       else if (sel === 'Mileage') document.getElementById('sec-mileage').style.display = 'block';
       else if (sel === 'Income') document.getElementById('sec-income').style.display = 'block';
     });
+
+    // Load Category & Vehicle from Google Sheets
+    async function loadDropdowns() {
+      const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTfwdhWSLJu66lkuSd_jA6plZTjbDIre7tQ4OErOtBWlYAZhhafk2A_UK-b2SY2OKgANGVOFk37QKx6/pub?output=csv';
+      const res = await fetch(sheetUrl);
+      const text = await res.text();
+      const rows = text.split('\n').map(r => r.split(','));
+      
+      const categorySelect = document.getElementById('category');
+      const vehicleSelect = document.getElementById('vehicle');
+
+      // Clear existing
+      categorySelect.innerHTML = '<option value="">Select...</option>';
+      vehicleSelect.innerHTML = '<option value="">Select...</option>';
+
+      rows.forEach(row => {
+        if (row[0]) categorySelect.innerHTML += `<option value="${row[0]}">${row[0]}</option>`;
+        if (row[1]) vehicleSelect.innerHTML += `<option value="${row[1]}">${row[1]}</option>`;
+      });
+    }
+
+    loadDropdowns();
   </script>
 </body>
 </html>
