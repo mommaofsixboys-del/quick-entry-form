@@ -1,1 +1,73 @@
 index.html
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Quick Entry Form</title>
+  <style>
+    body { font-family: sans-serif; line-height: 1.4; margin: 20px; }
+    label { display: block; margin: 10px 0 5px; }
+    input, select, textarea { width: 100%; padding: 8px; box-sizing: border-box; }
+    .section { display: none; margin-top: 10px; padding: 10px; border: 1px solid #ddd; }
+  </style>
+</head>
+<body>
+  <h2>Quick Record Entry</h2>
+  <form id="entryForm" method="POST" action="https://docs.google.com/forms/d/e/1FAIpQLSfq5k4yrVHmA9jtyUUMcoSUDcjaktRb_D73_JMLFejWKHJ0jQ/formResponse">
+    <!-- Record Type -->
+    <label for="rType">Record Type</label>
+    <select name="entry.1713856544" id="rType" required>
+      <option value="">Select...</option>
+      <option value="Expenses">Expenses</option>
+      <option value="Mileage">Mileage</option>
+      <option value="Income">Income</option>
+    </select>
+
+    <!-- Expenses Section -->
+    <div class="section" id="sec-expense">
+      <label> Date</label>
+      <input type="date" name="entry.1045158713" required>
+      <label> Amount</label>
+      <input type="number" step="0.01" name="entry.1854250654">
+      <label> Category</label>
+      <input type="text" name="entry.754345117">
+      <label> Description</label>
+      <textarea name="entry.121839773"></textarea>
+    </div>
+
+    <!-- Mileage Section -->
+    <div class="section" id="sec-mileage">
+      <label> Date</label>
+      <input type="date" name="entry.114922785">
+      <label> Vehicle</label>
+      <input type="text" name="entry.381239062">
+      <label> Description</label>
+      <textarea name="entry.470293168"></textarea>
+      <label> Miles</label>
+      <input type="number" step="0.1" name="entry.372962443">
+    </div>
+
+    <!-- Income Section -->
+    <div class="section" id="sec-income">
+      <label> Date</label>
+      <input type="date" name="entry.1243144726">
+      <label> Amount</label>
+      <input type="number" step="0.01" name="entry.1110252672">
+      <label> Description</label>
+      <textarea name="entry.585862880"></textarea>
+    </div>
+
+    <button style="margin-top: 20px; padding: 10px 20px;">Submit</button>
+  </form>
+
+  <script>
+    document.getElementById('rType').addEventListener('change', function() {
+      document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
+      const sel = this.value;
+      if (sel === 'Expenses') document.getElementById('sec-expense').style.display = 'block';
+      else if (sel === 'Mileage') document.getElementById('sec-mileage').style.display = 'block';
+      else if (sel === 'Income') document.getElementById('sec-income').style.display = 'block';
+    });
+  </script>
+</body>
+</html>
