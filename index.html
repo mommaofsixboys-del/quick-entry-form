@@ -1,4 +1,3 @@
-index.html
 <!DOCTYPE html>
 <html>
 <head>
@@ -30,7 +29,7 @@ index.html
       <label> Amount</label>
       <input type="number" step="0.01" name="entry.1854250654">
       <label> Category</label>
-      <input type="text" name="entry.754345117">
+      <select name="entry.754345117" id="categorySelect"></select>
       <label> Description</label>
       <textarea name="entry.121839773"></textarea>
     </div>
@@ -40,7 +39,7 @@ index.html
       <label> Date</label>
       <input type="date" name="entry.114922785">
       <label> Vehicle</label>
-      <input type="text" name="entry.381239062">
+      <select name="entry.381239062" id="vehicleSelect"></select>
       <label> Description</label>
       <textarea name="entry.470293168"></textarea>
       <label> Miles</label>
@@ -61,6 +60,39 @@ index.html
   </form>
 
   <script>
+    async function populateDropdowns() {
+      const url = "https://opensheet.elk.sh/1AvH7fc8xNf1OSyBTyTbskcyPCfkE1UkZmghQYnre_b4/List";
+      const data = await fetch(url).then(r => r.json());
+
+      const categories = [...new Set(data.map(row => row.Category).filter(Boolean))];
+      const vehicles = [...new Set(data.map(row => row.Vehicle).filter(Boolean))];
+
+      const catSelect = document.getElementById("categorySelect");
+      const vehSelect = document.getElementById("vehicleSelect");
+
+      // Add placeholder
+      catSelect.innerHTML = '<option value="">Select...</option>';
+      vehSelect.innerHTML = '<option value="">Select...</option>';
+
+      // Populate Categories
+      categories.forEach(cat => {
+        const opt = document.createElement("option");
+        opt.value = cat;
+        opt.textContent = cat;
+        catSelect.appendChild(opt);
+      });
+
+      // Populate Vehicles
+      vehicles.forEach(veh => {
+        const opt = document.createElement("option");
+        opt.value = veh;
+        opt.textContent = veh;
+        vehSelect.appendChild(opt);
+      });
+    }
+
+    populateDropdowns();
+
     document.getElementById('rType').addEventListener('change', function() {
       document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
       const sel = this.value;
