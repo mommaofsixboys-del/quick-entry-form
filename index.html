@@ -7,13 +7,17 @@
   <style>
     body { font-family: sans-serif; line-height: 1.4; margin: 20px; }
     label { display: block; margin: 10px 0 5px; }
-    input, select, textarea { width: 100%; padding: 8px; box-sizing: border-box; }
+    input, select, textarea, button {
+      width: 100%; padding: 8px; box-sizing: border-box;
+      font-size: 16px;
+    }
     .section { display: none; margin-top: 10px; padding: 10px; border: 1px solid #ddd; }
+    #success { display: none; color: green; margin-top: 10px; font-weight: bold; }
   </style>
 </head>
 <body>
   <h2>Quick Record Entry</h2>
-  <form id="entryForm" method="POST" target="hidden_iframe" action="https://docs.google.com/forms/d/e/1FAIpQLSfq5k4yrVHmA9jtyUUMcoSUDcjaktRb_D73_JMLFejWKHJ0jQ/formResponse">
+  <form id="entryForm" method="POST" action="https://docs.google.com/forms/d/e/1FAIpQLSfq5k4yrVHmA9jtyUUMcoSUDcjaktRb_D73_JMLFejWKHJ0jQ/formResponse" target="hidden_iframe">
     <!-- Record Type -->
     <label for="rType">Record Type</label>
     <select name="entry.1713856544" id="rType" required>
@@ -26,7 +30,7 @@
     <!-- Expenses Section -->
     <div class="section" id="sec-expense">
       <label>Date</label>
-      <input type="date" name="entry.1045158713" id="exp-date" required>
+      <input type="date" name="entry.1045158713" id="date-expenses" required>
       <label>Amount</label>
       <input type="number" step="0.01" name="entry.1854250654">
       <label>Category</label>
@@ -38,7 +42,7 @@
     <!-- Mileage Section -->
     <div class="section" id="sec-mileage">
       <label>Date</label>
-      <input type="date" name="entry.114922785" id="mil-date">
+      <input type="date" name="entry.114922785" id="date-mileage">
       <label>Vehicle</label>
       <select name="entry.381239062" id="vehicle"></select>
       <label>Description</label>
@@ -50,22 +54,26 @@
     <!-- Income Section -->
     <div class="section" id="sec-income">
       <label>Date</label>
-      <input type="date" name="entry.1243144726" id="inc-date">
+      <input type="date" name="entry.1243144726" id="date-income">
       <label>Amount</label>
       <input type="number" step="0.01" name="entry.1110252672">
       <label>Description</label>
       <textarea name="entry.585862880"></textarea>
     </div>
 
-    <button style="margin-top: 20px; padding: 10px 20px;">Submit</button>
+    <button type="submit" style="margin-top: 20px; padding: 10px 20px;">Submit</button>
+    <div id="success">Submitted!</div>
   </form>
 
+  <!-- Hidden iframe to avoid redirect -->
   <iframe name="hidden_iframe" style="display:none;"></iframe>
 
   <script>
-    // Toggle sections
-    document.getElementById('rType').addEventListener('change', function() {
-      document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
+    const rType = document.getElementById('rType');
+    const sections = document.querySelectorAll('.section');
+
+    rType.addEventListener('change', function() {
+      sections.forEach(s => s.style.display = 'none');
       const sel = this.value;
       if (sel === 'Expenses') document.getElementById('sec-expense').style.display = 'block';
       else if (sel === 'Mileage') document.getElementById('sec-mileage').style.display = 'block';
@@ -77,34 +85,36 @@
       const today = new Date().toISOString().split('T')[0];
       document.getElementById(id).value = today;
     }
-    ['exp-date', 'mil-date', 'inc-date'].forEach(setToday);
+    ['date-expenses', 'date-mileage', 'date-income'].forEach(setToday);
 
-    // Fetch categories & vehicles from LIST tab
+    // Populate dropdowns from LIST tab CSV
     fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vTfwdhWSLJu66lkuSd_jA6plZTjbDIre7tQ4OErOtBWlYAZhhafk2A_UK-b2SY2OKgANGVOFk37QKx6/pub?gid=1787059439&single=true&output=csv')
       .then(res => res.text())
       .then(csv => {
-        const rows = csv.split('\n').map(r => r.split(','));
-        const categories = [];
-        const vehicles = [];
-        rows.forEach(r => {
-          if (r[0]) categories.push(r[0].trim());
-          if (r[1]) vehicles.push(r[1].trim());
-        });
+        const rows = csv.trim().split('\n').map(r => r.split(','));
+        const categorySelect = document.getElementById('category');
+        const vehicleSelect = document.getElementById('vehicle');
 
-        const catSel = document.getElementById('category');
-        categories.forEach(c => {
-          const opt = document.createElement('option');
-          opt.value = c; opt.textContent = c;
-          catSel.appendChild(opt);
-        });
+        categorySelect.innerHTML = '<option value="">Select...</option>';
+        vehicleSelect.innerHTML = '<option value="">Select...</option>';
 
-        const vehSel = document.getElementById('vehicle');
-        vehicles.forEach(v => {
-          const opt = document.createElement('option');
-          opt.value = v; opt.textContent = v;
-          vehSel.appendChild(opt);
+        rows.forEach(row => {
+          if (row[0]) categorySelect.innerHTML += `<option value="${row[0]}">${row[0]}</option>`;
+          if (row[1]) vehicleSelect.innerHTML += `<option value="${row[1]}">${row[1]}</option>`;
         });
       });
+
+    // Show success message & clear form after submit
+    document.getElementById('entryForm').addEventListener('submit', function() {
+      setTimeout(() => {
+        this.reset();
+        ['date-expenses', 'date-mileage', 'date-income'].forEach(setToday);
+        document.getElementById('success').style.display = 'block';
+        setTimeout(() => {
+          document.getElementById('success').style.display = 'none';
+        }, 2000);
+      }, 500);
+    });
   </script>
 </body>
 </html>
