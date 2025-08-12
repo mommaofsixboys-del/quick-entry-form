@@ -3,18 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <title>Quick Entry Form</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { font-family: sans-serif; line-height: 1.4; margin: 20px; font-size: 18px; }
+    body { font-family: sans-serif; line-height: 1.4; margin: 20px; }
     label { display: block; margin: 10px 0 5px; }
-    input, select, textarea { width: 100%; padding: 8px; box-sizing: border-box; font-size: 16px; }
+    input, select, textarea { width: 100%; padding: 8px; box-sizing: border-box; }
     .section { display: none; margin-top: 10px; padding: 10px; border: 1px solid #ddd; }
-    button { font-size: 18px; padding: 10px; }
   </style>
 </head>
 <body>
   <h2>Quick Record Entry</h2>
-  <form id="entryForm" method="POST" action="https://docs.google.com/forms/d/e/1FAIpQLSfq5k4yrVHmA9jtyUUMcoSUDcjaktRb_D73_JMLFejWKHJ0jQ/formResponse">
+  <form id="entryForm">
     <!-- Record Type -->
     <label for="rType">Record Type</label>
     <select name="entry.1713856544" id="rType" required>
@@ -27,13 +26,11 @@
     <!-- Expenses Section -->
     <div class="section" id="sec-expense">
       <label>Date</label>
-      <input type="date" name="entry.1045158713" required>
+      <input type="date" name="entry.1045158713" id="expDate" required>
       <label>Amount</label>
       <input type="number" step="0.01" name="entry.1854250654">
       <label>Category</label>
-      <select id="categoryDropdown" name="entry.754345117">
-        <option value="">Select...</option>
-      </select>
+      <select name="entry.754345117" id="categoryDropdown"></select>
       <label>Description</label>
       <textarea name="entry.121839773"></textarea>
     </div>
@@ -41,11 +38,9 @@
     <!-- Mileage Section -->
     <div class="section" id="sec-mileage">
       <label>Date</label>
-      <input type="date" name="entry.114922785">
+      <input type="date" name="entry.114922785" id="mileDate">
       <label>Vehicle</label>
-      <select id="vehicleDropdown" name="entry.381239062">
-        <option value="">Select...</option>
-      </select>
+      <select name="entry.381239062" id="vehicleDropdown"></select>
       <label>Description</label>
       <textarea name="entry.470293168"></textarea>
       <label>Miles</label>
@@ -55,57 +50,81 @@
     <!-- Income Section -->
     <div class="section" id="sec-income">
       <label>Date</label>
-      <input type="date" name="entry.1243144726">
+      <input type="date" name="entry.1243144726" id="incDate">
       <label>Amount</label>
       <input type="number" step="0.01" name="entry.1110252672">
       <label>Description</label>
       <textarea name="entry.585862880"></textarea>
     </div>
 
-    <button style="margin-top: 20px;">Submit</button>
+    <button type="submit" style="margin-top: 20px; padding: 10px 20px;">Submit</button>
   </form>
 
   <script>
-    document.getElementById('rType').addEventListener('change', function() {
+    const rType = document.getElementById('rType');
+
+    function setTodayDate(fieldId) {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      document.getElementById(fieldId).value = `${yyyy}-${mm}-${dd}`;
+    }
+
+    // Show the correct section based on Record Type
+    rType.addEventListener('change', function() {
       document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
       const sel = this.value;
-      if (sel === 'Expenses') document.getElementById('sec-expense').style.display = 'block';
-      else if (sel === 'Mileage') document.getElementById('sec-mileage').style.display = 'block';
-      else if (sel === 'Income') document.getElementById('sec-income').style.display = 'block';
+      if (sel === 'Expenses') {
+        document.getElementById('sec-expense').style.display = 'block';
+        setTodayDate('expDate');
+      } else if (sel === 'Mileage') {
+        document.getElementById('sec-mileage').style.display = 'block';
+        setTodayDate('mileDate');
+      } else if (sel === 'Income') {
+        document.getElementById('sec-income').style.display = 'block';
+        setTodayDate('incDate');
+      }
     });
 
-    // Fetch Categories & Vehicles from LIST tab (gid=1787059439)
-    const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTfwdhWSLJu66lkuSd_jA6plZTjbDIre7tQ4OErOtBWlYAZhhafk2A_UK-b2SY2OKgANGVOFk37QKx6/pub?gid=1787059439&single=true&output=csv";
-
-    fetch(sheetURL)
-      .then(res => res.text())
+    // Load Category & Vehicle options from Google Sheets
+    fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vTfwdhWSLJu66lkuSd_jA6plZTjbDIre7tQ4OErOtBWlYAZhhafk2A_UK-b2SY2OKgANGVOFk37QKx6/pub?output=csv")
+      .then(response => response.text())
       .then(csv => {
-        const rows = csv.trim().split("\n").map(r => r.split(","));
-        const categories = [];
-        const vehicles = [];
-
-        for (let i = 1; i < rows.length; i++) { // skip header
-          if (rows[i][0]) categories.push(rows[i][0].trim());
-          if (rows[i][1]) vehicles.push(rows[i][1].trim());
-        }
-
-        const catDropdown = document.getElementById("categoryDropdown");
-        categories.forEach(cat => {
-          const opt = document.createElement("option");
-          opt.value = cat;
-          opt.textContent = cat;
-          catDropdown.appendChild(opt);
+        let rows = csv.split("\n").map(r => r.split(","));
+        let categories = [];
+        let vehicles = [];
+        rows.forEach(row => {
+          if (row[0] && row[0].trim()) categories.push(row[0].trim());
+          if (row[1] && row[1].trim()) vehicles.push(row[1].trim());
         });
 
-        const vehDropdown = document.getElementById("vehicleDropdown");
-        vehicles.forEach(veh => {
-          const opt = document.createElement("option");
-          opt.value = veh;
-          opt.textContent = veh;
-          vehDropdown.appendChild(opt);
-        });
-      })
-      .catch(err => console.error("Error loading dropdowns:", err));
+        let catSelect = document.getElementById('categoryDropdown');
+        catSelect.innerHTML = '<option value="">Select...</option>' + categories.map(c => `<option value="${c}">${c}</option>`).join('');
+
+        let vehSelect = document.getElementById('vehicleDropdown');
+        vehSelect.innerHTML = '<option value="">Select...</option>' + vehicles.map(v => `<option value="${v}">${v}</option>`).join('');
+      });
+
+    // Handle form submit via fetch (no redirect)
+    document.getElementById('entryForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const formData = new FormData(this);
+
+      fetch('https://docs.google.com/forms/d/e/1FAIpQLSfq5k4yrVHmA9jtyUUMcoSUDcjaktRb_D73_JMLFejWKHJ0jQ/formResponse', {
+        method: 'POST',
+        mode: 'no-cors',
+        body: formData
+      }).then(() => {
+        alert("✅ Your entry was submitted!");
+        this.reset();
+        document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
+        rType.value = "";
+      }).catch(err => {
+        alert("⚠️ There was an error submitting the form.");
+        console.error(err);
+      });
+    });
   </script>
 </body>
 </html>
