@@ -2,25 +2,22 @@
 <html>
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Quick Entry Form</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     body { font-family: sans-serif; line-height: 1.4; margin: 20px; }
     label { display: block; margin: 10px 0 5px; }
-    input, select, textarea, button {
-      width: 100%; padding: 8px; box-sizing: border-box;
-      font-size: 16px;
-    }
+    input, select, textarea { width: 100%; padding: 8px; box-sizing: border-box; font-size: 1em; }
     .section { display: none; margin-top: 10px; padding: 10px; border: 1px solid #ddd; }
-    #success { display: none; color: green; margin-top: 10px; font-weight: bold; }
+    button { margin-top: 20px; padding: 10px 20px; font-size: 1em; }
   </style>
 </head>
 <body>
   <h2>Quick Record Entry</h2>
-  <form id="entryForm" method="POST" action="https://docs.google.com/forms/d/e/1FAIpQLSfq5k4yrVHmA9jtyUUMcoSUDcjaktRb_D73_JMLFejWKHJ0jQ/formResponse" target="hidden_iframe">
+  <form id="entryForm" method="POST" action="https://docs.google.com/forms/d/e/1FAIpQLSfq5k4yrVHmA9jtyUUMcoSUDcjaktRb_D73_JMLFejWKHJ0jQ/formResponse">
     <!-- Record Type -->
     <label for="rType">Record Type</label>
-    <select name="entry.1713856544" id="rType" required>
+    <select id="rType" required>
       <option value="">Select...</option>
       <option value="Expenses">Expenses</option>
       <option value="Mileage">Mileage</option>
@@ -30,11 +27,11 @@
     <!-- Expenses Section -->
     <div class="section" id="sec-expense">
       <label>Date</label>
-      <input type="date" name="entry.1045158713" id="date-expenses" required>
+      <input type="date" name="entry.1045158713" id="expDate" required>
       <label>Amount</label>
       <input type="number" step="0.01" name="entry.1854250654">
       <label>Category</label>
-      <select name="entry.754345117" id="category"></select>
+      <select name="entry.754345117" id="categorySelect"></select>
       <label>Description</label>
       <textarea name="entry.121839773"></textarea>
     </div>
@@ -42,9 +39,9 @@
     <!-- Mileage Section -->
     <div class="section" id="sec-mileage">
       <label>Date</label>
-      <input type="date" name="entry.114922785" id="date-mileage">
+      <input type="date" name="entry.114922785" id="mileDate">
       <label>Vehicle</label>
-      <select name="entry.381239062" id="vehicle"></select>
+      <select name="entry.381239062" id="vehicleSelect"></select>
       <label>Description</label>
       <textarea name="entry.470293168"></textarea>
       <label>Miles</label>
@@ -54,26 +51,20 @@
     <!-- Income Section -->
     <div class="section" id="sec-income">
       <label>Date</label>
-      <input type="date" name="entry.1243144726" id="date-income">
+      <input type="date" name="entry.1243144726" id="incDate">
       <label>Amount</label>
       <input type="number" step="0.01" name="entry.1110252672">
       <label>Description</label>
       <textarea name="entry.585862880"></textarea>
     </div>
 
-    <button type="submit" style="margin-top: 20px; padding: 10px 20px;">Submit</button>
-    <div id="success">Submitted!</div>
+    <button type="submit">Submit</button>
   </form>
 
-  <!-- Hidden iframe to avoid redirect -->
-  <iframe name="hidden_iframe" style="display:none;"></iframe>
-
   <script>
-    const rType = document.getElementById('rType');
-    const sections = document.querySelectorAll('.section');
-
-    rType.addEventListener('change', function() {
-      sections.forEach(s => s.style.display = 'none');
+    // Show relevant section
+    document.getElementById('rType').addEventListener('change', function() {
+      document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
       const sel = this.value;
       if (sel === 'Expenses') document.getElementById('sec-expense').style.display = 'block';
       else if (sel === 'Mileage') document.getElementById('sec-mileage').style.display = 'block';
@@ -81,39 +72,40 @@
     });
 
     // Auto-fill today's date
-    function setToday(id) {
-      const today = new Date().toISOString().split('T')[0];
-      document.getElementById(id).value = today;
+    function setTodayDate(id) {
+      document.getElementById(id).value = new Date().toISOString().split('T')[0];
     }
-    ['date-expenses', 'date-mileage', 'date-income'].forEach(setToday);
+    ['expDate', 'mileDate', 'incDate'].forEach(setTodayDate);
 
-    // Populate dropdowns from LIST tab CSV
+    // Load dropdowns from LIST tab
     fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vTfwdhWSLJu66lkuSd_jA6plZTjbDIre7tQ4OErOtBWlYAZhhafk2A_UK-b2SY2OKgANGVOFk37QKx6/pub?gid=1787059439&single=true&output=csv')
       .then(res => res.text())
-      .then(csv => {
-        const rows = csv.trim().split('\n').map(r => r.split(','));
-        const categorySelect = document.getElementById('category');
-        const vehicleSelect = document.getElementById('vehicle');
+      .then(data => {
+        const rows = data.split('\n').map(r => r.split(','));
+        const categorySelect = document.getElementById('categorySelect');
+        const vehicleSelect = document.getElementById('vehicleSelect');
 
         categorySelect.innerHTML = '<option value="">Select...</option>';
         vehicleSelect.innerHTML = '<option value="">Select...</option>';
 
         rows.forEach(row => {
-          if (row[0]) categorySelect.innerHTML += `<option value="${row[0]}">${row[0]}</option>`;
-          if (row[1]) vehicleSelect.innerHTML += `<option value="${row[1]}">${row[1]}</option>`;
+          if (row[0]) categorySelect.innerHTML += `<option>${row[0].trim()}</option>`;
+          if (row[1]) vehicleSelect.innerHTML += `<option>${row[1].trim()}</option>`;
         });
       });
 
-    // Show success message & clear form after submit
-    document.getElementById('entryForm').addEventListener('submit', function() {
-      setTimeout(() => {
-        this.reset();
-        ['date-expenses', 'date-mileage', 'date-income'].forEach(setToday);
-        document.getElementById('success').style.display = 'block';
-        setTimeout(() => {
-          document.getElementById('success').style.display = 'none';
-        }, 2000);
-      }, 500);
+    // Handle form submission without redirect
+    document.getElementById('entryForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const formData = new FormData(this);
+      fetch(this.action, { method: 'POST', body: formData, mode: 'no-cors' })
+        .then(() => {
+          alert('Entry submitted!');
+          this.reset();
+          setTodayDate('expDate');
+          setTodayDate('mileDate');
+          setTodayDate('incDate');
+        });
     });
   </script>
 </body>
